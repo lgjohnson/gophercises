@@ -19,7 +19,6 @@ type quiz struct {
 	csv_filename string
 	questions []string
 	answers []string
-	score int
 }
 
 func (q *quiz) readCsv() string {
@@ -59,6 +58,12 @@ func (q *quiz ) administerQuestions(numbers []int, c chan bool) {
 
 }
 
+func (q *quiz) timeQuiz(sec int, c chan bool){
+	timer := time.NewTimer(time.Duration(sec) * time.Second)
+	<- timer.C
+	c <- true
+}
+
 func (q *quiz) administerQuiz(timed, random bool) string {
 
 	var numbers []int
@@ -72,20 +77,33 @@ func (q *quiz) administerQuiz(timed, random bool) string {
 
 	c := make(chan bool)
 	go q.administerQuestions(numbers, c)
-	q.score = 0
-
+	
+	score, asked := 0, 0
+	var correct bool
 	if timed {
-		fmt.Println("Time not implemented yet :(")	
-	} else {
-		for correct := range c {
-			if correct {
-				q.score++
+		time_up_c := make(chan bool)
+		go q.timeQuiz(30, time_up_c)
+		for {
+			select {
+			case <- time_up_c:
+				break
+			case correct = <-c:
+				asked++
+				if correct {
+					score++
+				}
 			}
 		}
-		fmt.Println(q.score)
+	} else {
+		for correct = range c {
+			asked++
+			if correct {
+				score++
+			}
+		}
 	}
 
-	fmt.Printf("%d questions asked, %d questions were answered correctly.", len(q.questions), q.score)
+	fmt.Printf("%d questions asked, %d questions were answered correctly.", asked, score)
 
 	return "ok"
 }
@@ -111,7 +129,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = Quiz.administerQuiz(false, true)
+	err = Quiz.administerQuiz(true, true)
 	if err != "ok" {
 		fmt.Println("Error administering quiz.")
 		os.Exit(1)
