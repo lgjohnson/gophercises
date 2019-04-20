@@ -1,0 +1,9 @@
+version: '3'
+services:
+  gopher_app:
+    build:
+      context: .
+      args:
+        - EXERCISE=0
+    stdin_open: true
+    tty: true
