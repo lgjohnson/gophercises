@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"os"
 	"io"
+	"math/rand"
+	"time"
 	"encoding/csv"
 	"fmt"
 	"strings"
@@ -44,23 +46,60 @@ func (q *quiz) readCsv() string {
 	return "ok"
 }
 
-func (q *quiz) administer() string {
+func (q *quiz ) administerQuestions(numbers []int, c chan bool) {
 
-	q.score = 0
 	stdin_reader := bufio.NewReader(os.Stdin)
-
-	for i, question := range q.questions {
-		fmt.Println(question)
+	for _, i := range numbers {
+		fmt.Println(q.questions[i])
 		text, _ := stdin_reader.ReadString('\n')
 		text = strings.TrimSpace(text)
-		if text == q.answers[i] {
-			q.score++
+		c <- text == q.answers[i]
+	}
+	close(c)
+
+}
+
+func (q *quiz) administerQuiz(timed, random bool) string {
+
+	var numbers []int
+	for i := range q.questions {
+		numbers = append(numbers, i)
+	}
+
+	if random {
+		Shuffle(numbers)
+	} 
+
+	c := make(chan bool)
+	go q.administerQuestions(numbers, c)
+	q.score = 0
+
+	if timed {
+		fmt.Println("Time not implemented yet :(")	
+	} else {
+		for correct := range c {
+			if correct {
+				q.score++
+			}
 		}
+		fmt.Println(q.score)
 	}
 
 	fmt.Printf("%d questions asked, %d questions were answered correctly.", len(q.questions), q.score)
+
 	return "ok"
 }
+
+func Shuffle(slice []int) {
+	r := rand.New(rand.NewSource(time.Now().Unix()))
+	for len(slice) > 0 {
+		n := len(slice)
+		randIndex := r.Intn(n)
+		slice[n-1], slice[randIndex] = slice[randIndex], slice[n-1]
+		slice = slice[:n-1]
+	}
+}
+
 
 func main() {
 
@@ -72,7 +111,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = Quiz.administer()
+	err = Quiz.administerQuiz(false, true)
 	if err != "ok" {
 		fmt.Println("Error administering quiz.")
 		os.Exit(1)
