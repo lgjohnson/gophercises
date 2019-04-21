@@ -51,6 +51,7 @@ func (q *quiz ) administerQuestions(numbers []int, c chan bool) {
 		text = strings.TrimSpace(text)
 		c <- text == q.answers[i]
 	}
+
 	close(c)
 
 }
@@ -83,12 +84,19 @@ func (q *quiz) administerQuiz(timed, random bool) string {
 		for {
 			select {
 			case <- time_up_c:
-				break
-			case correct = <-c:
+				time_up_c = nil
+
+			case correct, ok := <-c:
+				if !ok {
+					c = nil
+				}
 				asked++
 				if correct {
 					score++
 				}
+			}
+			if c == nil || time_up_c == nil {
+				break
 			}
 		}
 	} else {
@@ -100,7 +108,7 @@ func (q *quiz) administerQuiz(timed, random bool) string {
 		}
 	}
 
-	fmt.Printf("%d questions asked, %d questions were answered correctly.", asked, score)
+	fmt.Printf("%d of %d questions asked. %d questions were answered correctly.", asked, len(q.questions), score)
 
 	return "ok"
 }
