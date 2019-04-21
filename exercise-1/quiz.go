@@ -9,10 +9,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"strings"
-)
-
-const (
-	CSV_FILENAME = "test.csv"
+	"flag"
 )
 
 type quiz struct {
@@ -121,7 +118,13 @@ func Shuffle(slice []int) {
 
 func main() {
 
-	Quiz := quiz{csv_filename: CSV_FILENAME}
+	csvPtr := flag.String("csv", "test.csv", "Specify path to csv of questions and answers.")
+	randomPtr := flag.Bool("random", false, "Randomize questions?")
+	timedPtr := flag.Bool("timed", false, "Time quiz?")
+
+	flag.Parse()
+
+	Quiz := quiz{csv_filename: *csvPtr}
 
 	err := Quiz.readCsv()
 	if err != "ok" {
@@ -129,12 +132,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = Quiz.administerQuiz(true, true)
+	fmt.Println(*timedPtr)
+	fmt.Println(*randomPtr)
+	
+
+	err = Quiz.administerQuiz(*timedPtr, *randomPtr)
 	if err != "ok" {
 		fmt.Println("Error administering quiz.")
 		os.Exit(1)
 	}
 	os.Exit(0)
 }
-
-
